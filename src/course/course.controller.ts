@@ -1,0 +1,60 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+} from '@nestjs/common'
+import { PaginationDto } from 'src/common/dto/pagination.dto'
+import { CourseService } from './course.service'
+import { CreateCourseDto } from './dto/create-course.dto'
+
+@Controller('courses')
+export class CourseController {
+  constructor(private readonly courseService: CourseService) {}
+
+  @Post()
+  create(@Body() createCourseDto: CreateCourseDto) {
+    return this.courseService.create(createCourseDto)
+  }
+
+  @Get()
+  findAll(@Query() params: PaginationDto) {
+    return this.courseService.paginate(params)
+  }
+
+  // @Roles(['TEACHER'])
+  // @Get('submissions')
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // getProjectsByCourse(
+  //   @CurrentUser() teacher: any,
+  //   @Query() params: PaginationDto,
+  // ) {
+  //   return this.courseService.getProjectsForReview(teacher.id, params);
+  // }
+
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.courseService.findOne(+id)
+  // }
+
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
+  //   return this.courseService.update(+id, updateCourseDto)
+  // }
+
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.courseService.remove(+id)
+  // }
+
+  // @Post('/assign/teacher')
+  // assignTeacher(@Body() dto: AssignCourseDto) {
+  //   return this.courseService.assignTeacher(dto);
+  // }
+
+  // @Delete('/remove/teacher')
+  // removeTeacher(@Body() dto: AssignCourseDto) {
+  //   return this.courseService.removeTeacher(dto);
+  // }
+}

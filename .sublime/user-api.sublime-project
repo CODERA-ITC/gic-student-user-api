@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "path": ".."
+    }
+  ],
+  "settings": {
+    "lsp_code_actions_on_save": {
+      "source.fixAll.eslint": true
+    }
+  }
+}
