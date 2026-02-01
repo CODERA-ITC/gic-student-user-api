@@ -1,8 +1,59 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { Logger, ValidationPipe } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { NestFactory } from '@nestjs/core'
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { DataSource } from 'typeorm'
+import { AppModule } from './app.module'
+import 'dotenv/config'
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3000);
+  const app = await NestFactory.create(AppModule)
+  // Global validation pipe
+  const logger = new Logger('Bootstrap')
+
+  const configService = app.get(ConfigService)
+
+  try {
+    const dataSource = app.get(DataSource)
+    if (dataSource.isInitialized) {
+      Logger.log('✅ Database connection established successfully')
+      logger.log(
+        `📊 Database: ${configService.get('DATABASE_NAME')} on ${configService.get('DATABASE_HOST')}:${configService.get('DATABASE_PORT')}`,
+      )
+    }
+  }
+  catch (error) {
+    logger.error('❌ Failed to connect to database', error)
+  }
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      skipMissingProperties: true,
+      forbidNonWhitelisted: false,
+    }),
+  )
+
+  // Swagger setup
+  const config = new DocumentBuilder()
+    .setTitle('Nest Simple Auth API')
+    .setDescription(
+      'Simple NestJS project with JWT Auth, User, and Project modules',
+    )
+    .setVersion('1.0')
+    .addBearerAuth() // Enable JWT in Swagger UI
+    .build()
+
+  const document = SwaggerModule.createDocument(app, config)
+  SwaggerModule.setup('api', app, document)
+
+  logger.log(
+    `🚀 Application is running with ${process.env.NODE_ENV} environment`,
+  )
+
+  app.enableCors()
+
+  await app.listen(process.env.PORT ?? 3000)
 }
-bootstrap();
+
+bootstrap()
