@@ -21,7 +21,6 @@ import { ConfigService } from '@nestjs/config'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
-import { GitHubOauthGuard } from './auth/github-oauth.guards'
 import { JwtAuthGuard } from './auth/jwt-auth.guard'
 import { OptionalJwtAuthGuard } from './auth/optional-jwt-auth.guard'
 import { RolesGuard } from './auth/roles.guard'
@@ -42,6 +41,51 @@ export class UserController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
+
+  @Get()
+  @UseGuards(OptionalJwtAuthGuard)
+  findAll(@Query() pagination: PaginateUserDto, @CurrentUser() user) {
+    return this.userService.paginate(pagination, user)
+  }
+
+  @Get('current')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current authenticated user' })
+  findUserWithCurrent(@CurrentUser() user: any) {
+    log('Current User:', user)
+    return this.userService.findUserById(user.userId)
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search students by name' })
+  async searchUser(@Query('q') q: string) {
+    try {
+      if (!q || q.trim() === '') {
+        return {
+          success: true,
+          message: 'No search query provided',
+          data: [],
+        }
+      }
+      const users = await this.userService.searchUser(q)
+      return {
+        success: true,
+        message: 'Search Completed',
+        data: users,
+      }
+    }
+    catch (error) {
+      console.error('Search error:', error.message)
+      throw new BadRequestException('Search failed. Please try again! ')
+    }
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get user by id' })
+  getUserById(@Param('id') id: string) {
+    return this.userService.findUserById(id)
+  }
 
   @Post('signup')
   @ApiOperation({ summary: 'Register a new user' })
@@ -66,19 +110,6 @@ export class UserController {
     }
   }
 
-  @Patch('/me')
-  @UseGuards(JwtAuthGuard)
-  async updateSelf(@CurrentUser() user, @Body() dto: UpdateUserDto) {
-    return await this.userService.updateUser(user.id, dto)
-  }
-
-  @Roles(['TEACHER', 'ADMIN', 'SUPER_ADMIN'])
-  @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return await this.userService.updateUser(id, dto)
-  }
-
   @Post('admin')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(['ADMIN'])
@@ -97,12 +128,6 @@ export class UserController {
       console.error('Create Admin error:', error.message)
       throw new BadRequestException('Failed to create Admin. Please try again.')
     }
-  }
-
-  @Get()
-  @UseGuards(OptionalJwtAuthGuard)
-  findAll(@Query() pagination: PaginateUserDto, @CurrentUser() user) {
-    return this.userService.paginate(pagination, user)
   }
 
   @Post('refresh')
@@ -150,103 +175,12 @@ export class UserController {
     this.authService.revokeToken(id)
   }
 
-  @Get('current')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current authenticated user' })
-  findUserWithCurrent(@CurrentUser() user: any) {
-    log('Current User:', user)
-    return this.userService.findUserById(user.userId)
-  }
-
-  // @Get('google/callback')
-  // @UseGuards(GoogleOauthGuard)
-  // async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
-  //   const googleUser = req.user as any
-  //   const tokens = await this.authService.handleGoogleLogin(googleUser)
-
-  //   res.cookie('access_token', tokens.access_token, {
-  //     maxAge: 2592000000,
-  //     sameSite: 'none',
-  //     secure: true,
-  //     domain: 'localhost',
-  //     path: '/', // cookie will attach to whatever hostname the backend is served on
-  //   })
-
-  //   const frontendUrl: string = this.configService.getOrThrow('FRONTEND_HOST')
-  //   return res
-  //     .status(HttpStatus.OK)
-  //     .redirect(`${frontendUrl}/student/dashboard?token=${tokens.access_token}`)
-  // }
-
-  // Redirect user to GitHub Login Page
-  @Get('github')
-  @UseGuards(GitHubOauthGuard)
-  async authGitHub() {}
-
-  // @Get('github/callback')
-  // @UseGuards(GitHubOauthGuard)
-  // async githubAuthCallBack(@Req() req: Request, @Res() res: Response) {
-  //   const githubUser = req.user as any
-  //   const tokens = await this.authService.handleGitHubLogin(githubUser)
-
-  //   res.cookie('access_token', tokens.access_token, {
-  //     maxAge: 2592000000,
-  //     sameSite: 'none',
-  //     secure: true,
-  //     domain: 'localhost', // in prod change to frontend real domain
-  //     path: '/', // cookie will attach to whatever hostname the backend is served on
-  //   })
-
-  //   const frontendUrl: string = this.configService.getOrThrow('FRONTEND_HOST')
-  //   return res
-  //     .status(HttpStatus.OK)
-  //     .redirect(`${frontendUrl}/student/dashboard?token=${tokens.access_token}`)
-  // }
-
-  @Get('search')
-  @ApiOperation({ summary: 'Search students by name' })
-  async searchUser(@Query('q') q: string) {
-    try {
-      if (!q || q.trim() === '') {
-        return {
-          success: true,
-          message: 'No search query provided',
-          data: [],
-        }
-      }
-      const users = await this.userService.searchUser(q)
-      return {
-        success: true,
-        message: 'Search Completed',
-        data: users,
-      }
-    }
-    catch (error) {
-      console.error('Search error:', error.message)
-      throw new BadRequestException('Search failed. Please try again! ')
-    }
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get user by id' })
-  getUserById(@Param('id') id: string) {
-    return this.userService.findUserById(id)
-  }
-
   @Post('avatar')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('files'))
   @ApiOperation({ summary: 'Upload user profile pic' })
   uploadProfile(@CurrentUser() user: { id: string }, @UploadedFile() file: Express.Multer.File) {
     return this.userService.uploadPFP(user.id, file)
-  }
-
-  @Delete('avatar')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Delete user profile pic' })
-  deleteProfile(@CurrentUser() user: { id: string }) {
-    return this.userService.deletePFP(user.id)
   }
 
   @Post('forgot-password')
@@ -269,5 +203,25 @@ export class UserController {
   @ApiOperation({ summary: 'Verify real students' })
   async verifyStudent(@Body() dto: CreateUserDto) {
     return this.authService.verifyRealStudent(dto)
+  }
+
+  @Patch('/me')
+  @UseGuards(JwtAuthGuard)
+  async updateSelf(@CurrentUser() user, @Body() dto: UpdateUserDto) {
+    return await this.userService.updateUser(user.id, dto)
+  }
+
+  @Roles(['TEACHER', 'ADMIN', 'SUPER_ADMIN'])
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return await this.userService.updateUser(id, dto)
+  }
+
+  @Delete('avatar')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete user profile pic' })
+  deleteProfile(@CurrentUser() user: { id: string }) {
+    return this.userService.deletePFP(user.id)
   }
 }
