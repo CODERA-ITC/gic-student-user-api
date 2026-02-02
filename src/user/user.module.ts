@@ -12,6 +12,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard'
 import { User } from './entities/user.entity'
 import { GitHubStrategy } from './strategies/github.strategy'
 import { GoogleStrategy } from './strategies/google.strategy'
+import { JwtStrategy } from './strategies/jwt.strategy'
 import { UserController } from './user.controller'
 import { UserService } from './user.service'
 
@@ -24,7 +25,15 @@ import { UserService } from './user.service'
     SecurityQuestion,
   ]), PassportModule, SecurityQuestionsModule],
   controllers: [UserController],
-  providers: [UserService, AuthService, JwtService, JwtAuthGuard, GoogleStrategy, GitHubStrategy],
+  providers: [
+    UserService,
+    AuthService,
+    JwtService,
+    JwtAuthGuard,
+    GoogleStrategy,
+    GitHubStrategy,
+    JwtStrategy,
+  ],
   exports: [UserService, AuthService],
 })
 export class UserModule {}

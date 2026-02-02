@@ -34,6 +34,7 @@ async function bootstrap() {
     }),
   )
 
+
   // Swagger setup
   const config = new DocumentBuilder()
     .setTitle('Nest Simple Auth API')
@@ -48,7 +49,7 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document)
 
   logger.log(
-    `🚀 Application is running with ${process.env.NODE_ENV} environment`,
+    `🚀 Application is running with ${configService.get<string>('NODE_ENV')} environment`,
   )
 
   app.enableCors()
