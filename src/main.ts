@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { DataSource } from 'typeorm'
 import { AppModule } from './app.module'
 import 'dotenv/config'
+import { config } from 'node:process'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -34,6 +35,9 @@ async function bootstrap() {
     }),
   )
 
+  const apiHost = configService.getOrThrow<string>('API_HOST_URL')
+  const env = configService.getOrThrow<string>('ENVIRONMENT')
+
 
   // Swagger setup
   const config = new DocumentBuilder()
@@ -42,6 +46,7 @@ async function bootstrap() {
       'Simple NestJS project with JWT Auth, User, and Project modules',
     )
     .setVersion('1.0')
+    .addServer(apiHost, env)
     .addBearerAuth() // Enable JWT in Swagger UI
     .build()
 
@@ -49,12 +54,12 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document)
 
   logger.log(
-    `🚀 Application is running with ${configService.get<string>('NODE_ENV')} environment`,
+    `🚀 Application is running with ${env} environment`,
   )
 
   app.enableCors()
   const port = Number(configService.getOrThrow('PORT'))
-  
+
   await app.listen(port)
 }
 
