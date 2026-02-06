@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
 } from '@nestjs/common'
@@ -13,14 +14,19 @@ import { CreateCourseDto } from './dto/create-course.dto'
 export class CourseController {
   constructor(private readonly courseService: CourseService) {}
 
-  @Post()
-  create(@Body() createCourseDto: CreateCourseDto) {
-    return this.courseService.create(createCourseDto)
-  }
-
   @Get()
   findAll(@Query() params: PaginationDto) {
     return this.courseService.paginate(params)
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.courseService.findOne(id)
+  }
+
+  @Post()
+  create(@Body() createCourseDto: CreateCourseDto) {
+    return this.courseService.create(createCourseDto)
   }
 
   // @Roles(['TEACHER'])

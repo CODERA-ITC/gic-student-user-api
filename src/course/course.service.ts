@@ -52,8 +52,8 @@ export class CourseService {
     }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} course`
+  findOne(id: string) {
+    return this.courseRepo.findOneOrFail({ where: { id } })
   }
 
   update(id: number, updateCourseDto: UpdateCourseDto) {
