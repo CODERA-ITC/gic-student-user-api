@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Example: Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/" # Location of package.json
+    labels:
+      - "security"
+    schedule:
+      interval: "daily"
+    target-branch: "dev" # PRs will be opened against the 'dev' branch
+
