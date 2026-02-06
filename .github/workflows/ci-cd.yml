@@ -1,0 +1,78 @@
+name: Build & Deploy NestJs Docker
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    env:
+      PROJECT_PATH: "${{ secrets.PROJECT_PATH }}"
+
+    steps:
+      - name: Pull code from main
+        run: |
+          echo "STAGE=PULL" >> $GITHUB_ENV
+
+          cd "$PROJECT_PATH/gic-student-project-api"
+          git checkout main
+          git pull origin main
+      - name: Login Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" \
+          | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build image
+        run: |
+          echo "STAGE=Build" >> $GITHUB_ENV
+
+          cd "$PROJECT_PATH/gic-student-project-api"
+          docker build -f Dockerfile.prod -t ${{ secrets.DOCKER_USERNAME }}/gic-student-project-api:latest .
+
+      - name: Push image
+        run: |
+          echo "STAGE=Build" >> $GITHUB_ENV
+
+          docker push ${{ secrets.DOCKER_USERNAME }}/gic-student-project-api:latest
+
+      - name: Restart container
+        run: |
+          echo "STAGE=Deployment" >> $GITHUB_ENV
+          cd $PROJECT_PATH
+          docker compose stop user_service
+          docker compose up --build -d user_service
+
+
+      - name: Set status
+        if: always()
+        run: echo "STATUS=${{ job.status }}" >> $GITHUB_ENV
+
+      - name: Count new commits in this push
+        run: |
+          # Counts commits between the previous state (before) and current (after)
+          echo "NEW_COMMITS=$(git rev-list --count ${{ github.event.before }}..${{ github.event.after }})" \
+            >> $GITHUB_ENV
+
+      - name: Notify Telegram
+        if: always()
+        run: |
+          if [ "$STATUS" = "success" ]; then
+            ICON="✅"
+            TEXT="Stage: $STAGE successful"
+          else
+            ICON="❌"
+            TEXT="Stage: $STAGE failed"
+          fi
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "reply_to_message_id=97" \
+            -d "parse_mode=Markdown" \
+            -d "text=📌 $ICON $TEXT; Status: $STATUS\`
+          *Repo:* \`${{ github.repository }}\`
+          *Actor:* \`${{ github.actor }}\`
+          *Message:* \`${{ github.event.head_commit.message }}
+          New Commits: $NEW_COMMITS" \
+          > /dev/null 2>&1
