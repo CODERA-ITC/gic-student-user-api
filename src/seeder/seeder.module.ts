@@ -4,11 +4,10 @@ import { Course } from 'src/course/entities/course.entity'
 import { Department } from 'src/department/entitites/department.entity'
 import { Role } from '../role/entities/role.entity'
 import { User } from '../user/entities/user.entity'
-import { SeederController } from './seeder.controller'
 import { SeederService } from './seeder.service'
 
 @Module({
-  controllers: [SeederController],
+  controllers: [],
   providers: [SeederService],
   imports: [TypeOrmModule.forFeature([
     Department,

@@ -2,7 +2,7 @@ import { BadRequestException, Controller, Post, UploadedFile, UseInterceptors } 
 import { FileInterceptor } from '@nestjs/platform-express'
 import { RealStudentService } from './real-student.service'
 
-@Controller('real-student')
+@Controller('real-students')
 export class RealStudentController {
   constructor(private readonly realStudentService: RealStudentService) {}
   @Post('upload')
