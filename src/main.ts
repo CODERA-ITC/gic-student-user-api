@@ -4,8 +4,9 @@ import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { DataSource } from 'typeorm'
 import { AppModule } from './app.module'
+import { HttpExceptionFilter } from './common/filters/http-exception.filter'
+import { LoggingInterceptor } from './common/interceptor/logging.interceptor'
 import 'dotenv/config'
-import { config } from 'node:process'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -38,7 +39,6 @@ async function bootstrap() {
   const apiHost = configService.getOrThrow<string>('API_HOST_URL')
   const env = configService.getOrThrow<string>('ENVIRONMENT')
 
-
   // Swagger setup
   const config = new DocumentBuilder()
     .setTitle('Nest Simple Auth API')
@@ -51,11 +51,14 @@ async function bootstrap() {
     .build()
 
   const document = SwaggerModule.createDocument(app, config)
-  SwaggerModule.setup('api', app, document)
+  SwaggerModule.setup('api', app, document, { jsonDocumentUrl: 'swagger/json' })
 
   logger.log(
     `🚀 Application is running with ${env} environment`,
   )
+
+  app.useGlobalInterceptors(new LoggingInterceptor())
+  app.useGlobalFilters(new HttpExceptionFilter())
 
   app.enableCors()
   const port = Number(configService.getOrThrow('PORT'))
